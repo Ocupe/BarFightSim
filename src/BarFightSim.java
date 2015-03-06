@@ -19,6 +19,10 @@ public class BarFightSim extends PApplet {
 	ArrayList<VerletParticle2D> spectators = new ArrayList<VerletParticle2D>();
 	int spectatorAmount = 100;
 	int spectatorColor = color(255,255,0);
+	ArrayList<VerletParticle2D> intervener = new ArrayList<VerletParticle2D>();
+	int intervenerAmount = 15;
+	int intervenerColor = color(0,255,255);
+
 	Vec2D fightLoc;
 	
 	
@@ -30,15 +34,12 @@ public class BarFightSim extends PApplet {
 	int spectatorRadiusColor = color(0,255,0);
 	
 	float healthFighter1, healthFighter2;
+	float agressionLevelFighter1, agressionLevelFighter2; 
 	float fighterJitter = 0.1f;
-	
-	
-	//play variables
-	//fighter color
 	int fighterColor = color(255,0,0);
-	//ellipse radius
-	float agentRadius = 13;
 	
+	float agentRadius = 13;
+
 	
 	
 	public void setup()
@@ -54,7 +55,6 @@ public class BarFightSim extends PApplet {
 		fighter2 = new VerletParticle2D(new Vec2D(random(height),random(width)));
 		physics.addBehavior(new AttractionBehavior(fighter1, agentRadius, -1.0f, fighterJitter));
 		physics.addBehavior(new AttractionBehavior(fighter2, agentRadius, -1.0f, fighterJitter));
-		
 		physics.addParticle(fighter1);
 		physics.addParticle(fighter2);
 		
@@ -62,13 +62,20 @@ public class BarFightSim extends PApplet {
 		for (int i = 0; i < spectatorAmount; i++) 
 		{
 			VerletParticle2D p = new VerletParticle2D(new Vec2D(random(height), random(width)));
-			
 			physics.addBehavior(new AttractionBehavior(p, agentRadius, -1.0f, 0));
 			spectators.add(p);
 			physics.addParticle(p);
 		}
-			
+		
+		//set up intervener and add them to the 2D physics world effective 
+		for (int i = 0; i < intervenerAmount; i++) {
+			VerletParticle2D p = new VerletParticle2D(new Vec2D(random(height), random(width)));
+			physics.addBehavior(new AttractionBehavior(p, agentRadius, -1.0f, 0));
+			intervener.add(p);
+			physics.addParticle(p);
+		}
 	}
+	
 	
 	public void draw()
 	{
@@ -80,7 +87,6 @@ public class BarFightSim extends PApplet {
 			fightLoc = new Vec2D(fighter1.sub(fighter2)).scale(0.5f).add(fighter2);
 			isFightLocSet = true;
 			isFight = true;
-			
 			healthFighter1 = 100.0f;
 			healthFighter2 = 100.0f;
 		}
@@ -97,19 +103,28 @@ public class BarFightSim extends PApplet {
 			{
 				float velF1 = fighter1.getVelocity().magnitude();
 				float velF2 = fighter2.getVelocity().magnitude();
+				float damageOnHit = 3;
 				
 				if(velF1 > velF2){
-					healthFighter2 -= 1;
+					healthFighter2 -= damageOnHit;
 				}else if(velF1 < velF2){
-					healthFighter1 -= 1;
+					healthFighter1 -= damageOnHit;
 				}
 				println("Figher 1: "+ healthFighter1 +" Fighter 2: "+ healthFighter2);
+				
+				//if the health level of a fighter reaches 0 or below the fight is over. 
+				if (healthFighter1 <= 0) {
+					isFight = false;
+					println("Fight is over fighter 2 wins.");
+				} else if (healthFighter2 <= 0) {
+					isFight = false;
+					println("Fight is over fighter 1 wins.");
+				}
 			}
 			
 			//Spectator movement
 			for (VerletParticle2D p : spectators) 
 			{
-				
 				if(p.distanceTo(fightLoc) < dangerRadius)
 				{
 					//if inside danger zone add force away from the fightLoc
@@ -120,15 +135,28 @@ public class BarFightSim extends PApplet {
 				}	
 			}
 			
+			//intervener behavior & movement
+			for (VerletParticle2D p : intervener) 
+			{
+				if (p.distanceTo(fightLoc) > dangerRadius) {
+					//force to get to the fight location
+					p.addForce( fightLoc.sub(p).scale(0.03f* (1/p.distanceTo(fightLoc))));
+				} else {
+					//if inside the danger radius try to step between the to fighters by calculating the midelpoint between the fighter and going there.
+					Vec2D tempFightLoc = new Vec2D(fighter1.sub(fighter2)).scale(0.5f).add(fighter2);
+					p.addForce( tempFightLoc.sub(p).scale(0.03f* (1/p.distanceTo(tempFightLoc))));
+				}
+			}
+			
 			//draw fight location
 			fill(255);
 			rectMode(CENTER);
 			rect(fightLoc.x, fightLoc.y, 10, 10);
 			
-			//draw fight and spectator radius
+			//draw danger and spectator radius
 			noFill();
-//			stroke(dangerRadiusColor);
-//			ellipse(fightLoc.x, fightLoc.y, dangerRadius, dangerRadius);
+			stroke(dangerRadiusColor);
+			ellipse(fightLoc.x, fightLoc.y, dangerRadius, dangerRadius);
 			stroke(spectatorRadiusColor);
 			ellipse(fightLoc.x, fightLoc.y, spectatorRadius, spectatorRadius);
 			
@@ -152,17 +180,30 @@ public class BarFightSim extends PApplet {
 			ellipse(p.x, p.y, agentRadius, agentRadius);
 		}
 		
+		//draw intervener
+		fill(intervenerColor);
+		for (VerletParticle2D p : intervener) 
+		{
+			noStroke();
+			ellipse(p.x, p.y, agentRadius, agentRadius);
+		}
+		
 		drawUI();
 		
 	}
 	
 	private void drawUI() {
-		fill(fighterColor);
-		text(healthFighter1, 0 + 30, 30);
+		if (healthFighter1 >= 0) {
+			fill(fighterColor);
+			text(healthFighter1, 0 + 30, 30);
+			rect(30, 30, healthFighter1, 10);
+		}
 		
+		if (healthFighter2 >= 0) {
 		fill(fighterColor,128);
 		text(healthFighter2, width - 100, 30);
-		
+		rect(width - 100, 30, healthFighter2, 10);
+		}
 	}
 
 	public void keyPressed()
@@ -170,8 +211,8 @@ public class BarFightSim extends PApplet {
 		if (keyPressed && key == 'r'){
 			physics.particles.clear();
 			spectators.clear();
+			intervener.clear();
 			isFightLocSet = false;
-			
 			setup();
 		}
 	}
