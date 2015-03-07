@@ -11,6 +11,7 @@ import toxi.physics2d.behaviors.AttractionBehavior;
 import toxi.physics2d.behaviors.ParticleBehavior2D;
 import toxi.geom.*;
 
+@SuppressWarnings("serial")
 public class BarFightSim extends PApplet {
 	
 	VerletPhysics2D physics;
@@ -20,10 +21,12 @@ public class BarFightSim extends PApplet {
 	int spectatorAmount = 100;
 	int spectatorColor = color(255,255,0);
 	ArrayList<VerletParticle2D> intervener = new ArrayList<VerletParticle2D>();
-	int intervenerAmount = 4;
+	int intervenerAmount = 15;
 	int intervenerColor = color(0,255,255);
 
 	Vec2D fightLoc;
+	float aggressionLevel;
+	int lastHit;
 	
 	
 	boolean isFight = false;
@@ -36,7 +39,8 @@ public class BarFightSim extends PApplet {
 	float healthFighter1, healthFighter2;
 	float agressionLevelFighter1, agressionLevelFighter2; 
 	float fighterJitter = 0.1f;
-	int fighterColor = color(255,0,0);
+	int fighterColor01 = color(255,0,0);
+	int fighterColor02 = color(255,166,0);
 	
 	float agentRadius = 13;
 
@@ -89,6 +93,7 @@ public class BarFightSim extends PApplet {
 			isFight = true;
 			healthFighter1 = 100.0f;
 			healthFighter2 = 100.0f;
+			aggressionLevel = 50.0f;
 		}
 		
 		//if we have a ongoing fight do this
@@ -103,7 +108,7 @@ public class BarFightSim extends PApplet {
 			{
 				float velF1 = fighter1.getVelocity().magnitude();
 				float velF2 = fighter2.getVelocity().magnitude();
-				float damageOnHit = 3;
+				float damageOnHit = 2;
 				
 				if(velF1 > velF2){
 					healthFighter2 -= damageOnHit;
@@ -111,6 +116,14 @@ public class BarFightSim extends PApplet {
 					healthFighter1 -= damageOnHit;
 				}
 				println("Figher 1: "+ healthFighter1 +" Fighter 2: "+ healthFighter2);
+				
+				//when the fighters touch the aggression level rises no matter what
+				if(aggressionLevel < 100){
+					aggressionLevel += 1;
+				}
+				
+				//safe when the last hit was
+				lastHit = frameCount;
 				
 				//if the health level of a fighter reaches 0 or below the fight is over. 
 				if (healthFighter1 <= 0) {
@@ -120,6 +133,16 @@ public class BarFightSim extends PApplet {
 					isFight = false;
 					println("Fight is over fighter 1 wins.");
 				}
+			}
+			
+			//looks if the last hit was more than 60 frames away, if yes, reduce the afressionLevel
+			if(frameCount-lastHit > 60 ){
+				aggressionLevel -= 1;
+				lastHit = frameCount;
+			}
+			
+			if(aggressionLevel == 0){
+				isFight = false;
 			}
 			
 			//Spectator movement
@@ -147,7 +170,6 @@ public class BarFightSim extends PApplet {
 					p.addForce( tempFightLoc.sub(p).scale(0.03f* (1/p.distanceTo(tempFightLoc))));
 				}
 			}
-			
 			//draw fight location
 			fill(255);
 			rectMode(CENTER);
@@ -159,17 +181,15 @@ public class BarFightSim extends PApplet {
 			ellipse(fightLoc.x, fightLoc.y, dangerRadius, dangerRadius);
 			stroke(spectatorRadiusColor);
 			ellipse(fightLoc.x, fightLoc.y, spectatorRadius, spectatorRadius);
-			
-			
-			
 		}
+		
 		//draw functions that whether there is a fight or not have to be drawn
 		
 		//draw fighters
 		noStroke();
-		fill(fighterColor);
+		fill(fighterColor01);
 		ellipse(fighter1.x, fighter1.y, agentRadius, agentRadius);
-		fill(fighterColor,128);
+		fill(fighterColor02);
 		ellipse(fighter2.x, fighter2.y, agentRadius, agentRadius);
 		
 		//draw spectators
@@ -182,32 +202,40 @@ public class BarFightSim extends PApplet {
 		
 		//draw intervener
 		fill(intervenerColor);
-		for (VerletParticle2D p : intervener) 
-		{
+		for (VerletParticle2D p : intervener) {
 			noStroke();
 			ellipse(p.x, p.y, agentRadius, agentRadius);
 		}
 		
 		drawUI();
-		
 	}
 	
 	private void drawUI() {
 		if (healthFighter1 >= 0) {
-			fill(fighterColor);
-			text(healthFighter1, 0 + 30, 30);
+			fill(fighterColor01);
+			text(healthFighter1, 0, 20);
 			rect(30, 30, healthFighter1, 10);
 		}
 		
 		if (healthFighter2 >= 0) {
-		fill(fighterColor,128);
-		text(healthFighter2, width - 100, 30);
+		fill(fighterColor02);
+		text(healthFighter2, width - 150, 20);
 		rect(width - 100, 30, healthFighter2, 10);
 		}
+		
+		//draw aggression level
+		if(aggressionLevel >= 0){
+			fill(240,140,131);
+			text("Agression Level: "+aggressionLevel, width/2-50, 20);
+			rect(width/2, 30, aggressionLevel, 10);
+		}
+		
+		//draw help text
+		fill(255);
+		text("press 'r' to reset the fight.", width-200, height-10);
 	}
 
-	public void keyPressed()
-	{
+	public void keyPressed(){
 		if (keyPressed && key == 'r'){
 			physics.particles.clear();
 			spectators.clear();
@@ -217,8 +245,7 @@ public class BarFightSim extends PApplet {
 		}
 	}
 	
-	public static void main(String args[])
-    {
+	public static void main(String args[]){
       PApplet.main(new String[] { BarFightSim.class.getName() });
     }
 
