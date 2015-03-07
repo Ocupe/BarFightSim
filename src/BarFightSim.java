@@ -20,7 +20,7 @@ public class BarFightSim extends PApplet {
 	int spectatorAmount = 100;
 	int spectatorColor = color(255,255,0);
 	ArrayList<VerletParticle2D> intervener = new ArrayList<VerletParticle2D>();
-	int intervenerAmount = 15;
+	int intervenerAmount = 4;
 	int intervenerColor = color(0,255,255);
 
 	Vec2D fightLoc;
