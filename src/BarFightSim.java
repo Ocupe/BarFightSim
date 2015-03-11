@@ -2,6 +2,8 @@ import java.util.ArrayList;
 
 import javax.swing.Box.Filler;
 
+import controlP5.ControlP5;
+
 import processing.core.*;
 import toxi.physics.*;
 import toxi.physics.behaviors.ParticleBehavior;
@@ -13,6 +15,8 @@ import toxi.geom.*;
 
 @SuppressWarnings("serial")
 public class BarFightSim extends PApplet {
+	
+	ControlP5 cp5;
 	
 	VerletPhysics2D physics;
 	float physicsDrag = 0.01f;
@@ -27,7 +31,6 @@ public class BarFightSim extends PApplet {
 	Vec2D fightLoc;
 	float aggressionLevel;
 	int lastHit;
-	
 	
 	boolean isFight = false;
 	boolean isFightLocSet = false;
@@ -50,6 +53,19 @@ public class BarFightSim extends PApplet {
 	{
 		size(500,500);
 		smooth(4);
+		
+		cp5 = new ControlP5(this);
+		  
+		  // add a horizontal sliders, the value of this slider will be linked
+		  // to variable 'sliderValue' 
+		cp5.addSlider("spectatorAmount")
+		     .setPosition(15,height-20)
+		     .setRange(0,200)
+		     ;
+		cp5.addSlider("intervenerAmount")
+	     .setPosition(15, height-30)
+	     .setRange(0,30)
+	     ;
 		
 		physics = new VerletPhysics2D();
 		physics.setWorldBounds(new Rect(0, 0, width, height));
@@ -155,10 +171,16 @@ public class BarFightSim extends PApplet {
 				}else{
 					//if outside the spectator zone add force to get close to it
 					p.addForce( fightLoc.sub(p).scale(0.03f* (1/p.distanceTo(fightLoc))));
-				}	
+				}
+				
 			}
 			
 			//intervener behavior & movement
+			//------------------------------
+			
+			//calculate best spectator positions
+			
+			
 			for (VerletParticle2D p : intervener) 
 			{
 				if (p.distanceTo(fightLoc) > dangerRadius) {
@@ -170,6 +192,7 @@ public class BarFightSim extends PApplet {
 					p.addForce( tempFightLoc.sub(p).scale(0.03f* (1/p.distanceTo(tempFightLoc))));
 				}
 			}
+			
 			//draw fight location
 			fill(255);
 			rectMode(CENTER);
@@ -206,7 +229,6 @@ public class BarFightSim extends PApplet {
 			noStroke();
 			ellipse(p.x, p.y, agentRadius, agentRadius);
 		}
-		
 		drawUI();
 	}
 	
